@@ -236,11 +236,11 @@ overview_content = html.Div([
                     dbc.Row([
                         dbc.Col([
                             html.H6("Average Time/Workout", style={"fontSize": "12px", "textAlign": "Center"}),
-                            html.H4(f"{['avg_distance_yards']:,.2f} hours", id="avg_duration", style={"textAlign": "Center"})
+                            html.H4("--", id="avg_duration", style={"textAlign": "Center"})
                         ], width=6),
                         dbc.Col([
                             html.H6("Average Distance Swam/Workout", style={"fontSize": "12px", "textAlign": "Center"}),
-                            html.H4(f"{['avg_distance_yards']:,.2f} hours", id="avg_distance", style={"textAlign": "Center"})
+                            html.H4("--", id="avg_distance", style={"textAlign": "Center"})
                         ], width=6)
                     ])
                 ])
@@ -742,7 +742,7 @@ def update_swim_pie(selected_date):
     Output("avg_duration", "children"),
     Output("avg_distance", "children"),
     Input("year_filter", "value"),
-    prevent_initial_call=True
+    prevent_initial_call=False
 )
 def update_yearly_totals(selected_year):
     if selected_year == "all" or selected_year is None:
