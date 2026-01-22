@@ -1,5 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap');
+
+body {
+    font-family: 'Lexend Deca', sans-serif;
+}
+
 html, body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Lexend Deca", sans-serif;
   background-color: #15113a;
   background-size: cover;
   -webkit-backdrop-filter: brightness(0.5);
@@ -18,20 +24,20 @@ html, body {
 
 h4, h5, h6 {
   color: #e0e1e5 !important;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Lexend Deca", sans-serif;
 }
 
 h1 {
   font-size: 3.5rem;
   font-weight: bold;
   color: #e0e1e5 !important;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Lexend Deca", sans-serif;
 }
 
 h3 {
   font-size: 2rem;
   color: #e0e1e5 !important;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Lexend Deca", sans-serif;
 }
 
 
@@ -75,4 +81,10 @@ h4 {
 
 .has-value.Select--single> .Select-control .Select-value .Select-value-label {
   color: #e0e1e5;
+}
+
+.gtitle {
+  font-size: 1rem;
+
+  font-family: "Lexend Deca", sans-serif !important;
 }

@@ -1,21 +1,24 @@
 # Imports
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc, Input, Output, html, dash_table, callback, State
+from dash import dcc, Input, Output, html, dash_table, callback, State, clientside_callback
 import plotly.express as px
 import pandas as pd
 import plotly.graph_objs as go
+import io
+from datetime import datetime
+
 
 
 
 # Loading Data
 def load_data():
     data = pd.read_csv('assets/daily_swim_summary.csv')
-    data["date_original"] = data["date"]
     data["date"] = pd.to_datetime(data["date"])
+    data["date_display"] = data["date"].dt.strftime("%Y-%m-%d")
+    
     data["year"] = data["date"].dt.year
-    data["date"] = data["date"].dt.strftime("%Y-%m-%d")
-    data.set_index("date", inplace=True, drop=False)
+
     return data
 
 
@@ -57,8 +60,7 @@ sidebar = html.Div(
                         "justifyContent": "center",
                         "fontSize": "18px",
                         "fontWeight": "bold",
-                        "margin": "2px auto",
-                        "marginTop": "30px"
+                        "margin": "30px auto"
                     }
                 )
             ]
@@ -116,6 +118,7 @@ sidebar = html.Div(
             style={"position": "absolute", "bottom": "2px", "width": "100%"}
         )
     ],
+    id="sidebar",
     style={
         "position": "fixed",
         "top": 0,
@@ -137,11 +140,11 @@ overview_content = html.Div([
                 dbc.CardBody([
                     dcc.Dropdown(
                         id="workout_filter",
-                        options=[{"label": date, "value": date} for date in data["date"].unique()],
+                        options=[{"label": date, "value": date} for date in data["date_display"].unique()],
                         value=None,
                         placeholder="Select a Workout"
                     ),
-                ])
+                ], style={"border": "1px solid #375050", "borderRadius": "8px"})
             ])
         ], width=3),
         dbc.Col([
@@ -175,6 +178,25 @@ overview_content = html.Div([
             ])
         ], width=3),
     ], style={"marginBottom": "20px", "padding-top": "30px"}),
+
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.H6("Yearly Average Time/Workout", style={"fontSize": "12px", "textAlign": "Center"}),
+                    html.H4("--", id="avg_duration", style={"textAlign": "Center"})
+                ], style={"padding": "5px"})
+            ]) 
+        ], width=6),
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.H6("Yearly Average Distance Swam/Workout", style={"fontSize": "12px", "textAlign": "Center"}),
+                    html.H4("--", id="avg_distance", style={"textAlign": "Center"})
+                ], style={"padding": "5px"})
+            ])    
+        ], width=6)  
+    ], style={"marginBottom": "20px", "padding-top": "3px"}),
     
     dbc.Row([
         dbc.Col([
@@ -185,15 +207,15 @@ overview_content = html.Div([
                         id="yardage_overview_chart",
                         config={'displayModeBar': False}
                     )
-                ])
+                ], style={"padding": "15px"})
             ])
         ], width=8),
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("📊 Strokes", style={"marginBottom": "15px"}),
+                    html.H6("📊 Breakdown by Stroke", style={"marginBottom": "15px"}),
                     dcc.Graph(id="swim_strokes", config={'displayModeBar': False})
-                ])
+                ], style={"padding": "15px"})
             ])
         ], width=4)
     ], style={"marginBottom": "20px"}),
@@ -205,7 +227,7 @@ overview_content = html.Div([
                     dbc.Row([
                         dbc.Col([
                             html.H6("🧮 Yearly Totals", style={"marginBottom": "15px"})
-                        ], width=10),
+                        ], width=11),
 
                         dbc.Col([
                             dcc.Dropdown(
@@ -214,9 +236,9 @@ overview_content = html.Div([
                                         [{"label": str(year), "value": year} for year in sorted(data["year"].unique())],
                                 value="all",
                                 placeholder="Select a year",
-                                style={"fontSize": "14px", "alignItems": "end"}
+                                style={"fontSize": "14px", "alignItems": "end", "marginRight": "15px", "border": "1px solid #375050", "borderRadius": "4px"}
                             )
-                        ], width=2, style={"textAlign": "right"})
+                        ], width=1, style={"textAlign": "right"})
                     ]),
                     dbc.Row([
                         dbc.Col([
@@ -231,19 +253,9 @@ overview_content = html.Div([
                             html.H6("Distance", style={"fontSize": "12px", "textAlign": "Center"}),
                             html.H4(f"{sum(data['total_distance']/1650):,.2f} miles", id="yearly_distance", style={"textAlign": "Center"})
                         ], width=4)
-                    ]),
-                    html.Hr(),
-                    dbc.Row([
-                        dbc.Col([
-                            html.H6("Average Time/Workout", style={"fontSize": "12px", "textAlign": "Center"}),
-                            html.H4("--", id="avg_duration", style={"textAlign": "Center"})
-                        ], width=6),
-                        dbc.Col([
-                            html.H6("Average Distance Swam/Workout", style={"fontSize": "12px", "textAlign": "Center"}),
-                            html.H4("--", id="avg_distance", style={"textAlign": "Center"})
-                        ], width=6)
                     ])
-                ])
+                    
+                ], style={"padding": "15px"})
             ])
         ])
     ]),
@@ -262,7 +274,7 @@ table_content = html.Div([
                     dash_table.DataTable(
                         id="recent_workouts",
                         columns=[
-                            {"name": "Date", "id": "date", "deletable": False, "selectable": True, "hideable": True},
+                            {"name": "Date", "id": "date_display", "deletable": False, "selectable": True, "hideable": True},
                             {"name": "Total Distance", "id": "total_distance", "deletable": False, "selectable": True, "hideable": True, "type": "numeric", "format": {"specifier": ",.0f"}},
                             {"name": "Max Heart Rate", "id": "max_heart_rate", "deletable": False, "selectable": True, "hideable": True},
                             {"name": "Number of Lengths", "id": "num_lengths", "deletable": False, "selectable": True, "hideable": True},
@@ -274,13 +286,23 @@ table_content = html.Div([
                             for i in data.columns
                             if i not in ["date", "total_distance", "max_heart_rate", "num_lengths", "swim_stroke", "total_distance_miles", "total_time_minutes"]
                         ],
-                        data=data.to_dict("records"),
-                        hidden_columns=["message_index", "event", "event_type", "start_time", "total_elapsed_time", "total_cycles", "avg_heart_rate", "avg_cadence", "max_cadence", "lap_trigger", "first_length_index", "avg_stroke_distance", "sport", "min_heart_rate", "enhanced_avg_speed", "time", "Unnamed: 0", "workout_id", "backstroke", "butterfly", "breaststroke", 'freestyle', "im", "mixed", "year"],
+                        data=data.sort_values(by="date_display", ascending=False).to_dict("records"),
+                        hidden_columns=["message_index", "event", "event_type", "start_time", "total_elapsed_time", "total_cycles", "avg_heart_rate", "avg_cadence", "max_cadence", "lap_trigger", "first_length_index", "avg_stroke_distance", "sport", "min_heart_rate", "enhanced_avg_speed", "time", "Unnamed: 0", "workout_id", "backstroke", "butterfly", "breaststroke", 'freestyle', "im", "mixed", "year", "date_display"],
                         sort_action="native",
                         selected_columns=[],
                         selected_rows=[],
                         page_size=25,
-                        style_cell={"maxWidth": "12px", "fontSize": "13px"},
+                        style_cell={"fontSize": "13px", "fontFamily": "Lexend Deca", "backgroundColor": "#e0e1e5"},
+                        style_header={"fontWeight": "bold"},
+                        style_cell_conditional=[
+                            {"if": {"column_id": "date_display"}, "width": "120px", "minWidth": "120px", "maxWidth": "120px"},
+                            {"if": {"column_id": "total_distance"}, "width": "130px", "minWidth": "130px", "maxWidth": "140px"},
+                            {"if": {"column_id": "max_heart_rate"}, "width": "130px", "minWidth": "130px", "maxWidth": "140px"},
+                            {"if": {"column_id": "num_lengths"}, "width": "130px", "minWidth": "130px", "maxWidth": "150px"},
+                            {"if": {"column_id": "swim_stroke"}, "width": "210px", "minWidth": "180px", "maxWidth": "210px"},
+                            {"if": {"column_id": "total_distance_miles"}, "width": "160px", "minWidth": "160px", "maxWidth": "160px"},
+                            {"if": {"column_id": "total_time_minutes"}, "width": "150px", "minWidth": "150px", "maxWidth": "150px"},
+                        ],
                         css=[{"selector": ".show-hide", "rule": "display: none"}]
                     )
                 ])
@@ -300,12 +322,83 @@ export_content = html.Div([
                 dbc.CardBody([
                     html.H5("Download Options", style={"marginBottom": "20px", "color": "#e0e1e5"}),
                     html.P("Select the data you want to export:", style={"color": "#e0e1e5"}),
-                    dbc.Button("Print Dashboard", color="primary", className="me-2 mb-2"),
-                    dbc.Button("Export All Data (Excel)", color="success", className="mb-2"),
-                    html.Hr(style={"margin": "30px 0"}),
-                    html.P("Note: Export functionality to be implemented based on your requirements.", 
-                    style={"fontSize": "14px", "color": "#e0e1e5"})
-                ])
+                    dbc.Button(
+                        "Print Dashboard", 
+                        color="primary", 
+                        className="me-2 mb-2",
+                        id="print_dashboard_btn"
+                    ),
+                    dbc.Button(
+                        "Export All Data (Excel)", 
+                        color="success", 
+                        className="mb-2",
+                        id="export_excel_btn"
+                    ),
+                    dcc.Download(id="download_excel"),
+                    html.H5("Share Dashboard", style={"marginBottom": "20px", "marginTop": "30px", "color": "#e0e1e5"}),
+                    html.P("Share your swim tracking dashboard with others:", style={"color": "#e0e1e5", "marginBottom": "15px"}),
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Button(
+                                [
+                                    html.I(className="bi bi-twitter-x", style={"marginRight": "8px"}),
+                                    ""
+                                ],
+                                id="share_twitter_btn",
+                                color="info",
+                                className="mb-2 w-100",
+                                style={"backgroundColor": "#1DA1F2", "borderColor": "#1DA1F2"}
+                            )
+                        ], width=2),
+                        dbc.Col([
+                            dbc.Button(
+                                [
+                                    html.I(className="bi bi-facebook", style={"marginRight": "8px"}),
+                                    "Facebook"
+                                ],
+                                id="share_facebook_btn",
+                                color="primary",
+                                className="mb-2 w-100",
+                                style={"backgroundColor": "#1877F2", "borderColor": "#1877F2"}
+                            )
+                        ], width=2),
+                        dbc.Col([
+                            dbc.Button(
+                                [
+                                    html.I(className="bi bi-instagram", style={"marginRight": "8px"}),
+                                    "Instagram"
+                                ],
+                                id="share_instagram_btn",
+                                color="danger",
+                                className="mb-2 w-100",
+                                style={"background": "linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)", "borderColor": "#bc1888"}
+                            )
+                        ], width=2),
+                        dbc.Col([
+                            dbc.Button(
+                                [
+                                    html.I(className="bi bi-envelope", style={"marginRight": "8px"}),
+                                    "Email"
+                                ],
+                                id="share_email_btn",
+                                color="secondary",
+                                className="mb-2 w-100"
+                            )
+                        ], width=2),
+                        dbc.Col([
+                            dbc.Button(
+                                [
+                                    html.I(className="bi bi-link-45deg", style={"marginRight": "8px"}),
+                                    "Copy Link"
+                                ],
+                                id="copy_link_btn",
+                                color="success",
+                                className="mb-2 w-100"
+                            )
+                        ], width=2)
+                    ]),
+                    html.Div(id="copy_link_feedback", style={"marginTop": "10px", "color": "#28a745", "display": "none"})
+                ], style={"padding": "10px"})
             ])
         ], style={"marginTop": "30px", "paddingLeft": "10px"})
     ])
@@ -593,6 +686,12 @@ content = html.Div(id="page-content", style={"marginLeft": "250px", "padding": "
 app.layout = html.Div(
     [
         dcc.Location(id='url', refresh=False),
+        dcc.Store(id="print_trigger"),
+        dcc.Store(id="workout_selection_store", data=None),
+        dcc.Store(id="share_twitter_store"),
+        dcc.Store(id="share_facebook_store"),
+        dcc.Store(id="share_instagram_store"),
+        dcc.Store(id="share_email_store"),
         sidebar,
         content
     ]
@@ -630,6 +729,30 @@ def render_page_content(overview_clicks, table_clicks, export_clicks, settings_c
         return account_content, False, False, False
     else:
         return overview_content, True, False, False
+
+
+# Callback to save workout selection to store
+@callback(
+    Output("workout_selection_store", "data"),
+    Input("workout_filter", "value"),
+    prevent_initial_call=False
+)
+def save_workout_selection(selected_workout):
+    return selected_workout
+
+
+# Callback to restore workout selection when Overview page is shown
+@callback(
+    Output("workout_filter", "value"),
+    Input("nav-overview", "active"),
+    State("workout_selection_store", "data"),
+    prevent_initial_call=True
+)
+def restore_workout_selection(overview_active, stored_workout):
+    # When Overview page becomes active, restore the stored workout selection
+    if overview_active and stored_workout is not None:
+        return stored_workout
+    return dash.no_update
 
 
 # Original callbacks for data
@@ -690,12 +813,11 @@ def update_workout_filter(selected_date):
     if selected_date is None:
         return "Select a workout", "Select a workout", "Select a workout"
 
-    filtered_df = data[data["date"] == selected_date]
-    date_display = selected_date
+    filtered_df = data[data["date_display"] == selected_date]
     total_yardage = filtered_df["total_distance"].sum()
     total_duration = filtered_df["total_time_minutes"].sum()
 
-    return date_display, f"{(total_yardage):,.0f} yards", f"{(total_duration):,.0f} minutes"
+    return selected_date, f"{(total_yardage):,.0f} yards", f"{(total_duration):,.0f} minutes"
 
 
 @callback(
@@ -705,7 +827,7 @@ def update_workout_filter(selected_date):
 def update_swim_pie(selected_date):
     if selected_date is None:
         filtered_df = agg_data.copy()
-        title = "Overall Swim Stroke Breakdown"
+        title = ""
     else:
         try:
             date_obj = pd.to_datetime(selected_date)
@@ -714,7 +836,7 @@ def update_swim_pie(selected_date):
             formatted_date = selected_date
         
         filtered_df = agg_data[agg_data["date"] == formatted_date]
-        title = f"Stroke Breakdown - {selected_date}"
+        title = f"Workout - {selected_date}"
         
     filtered_df = filtered_df[(filtered_df["swim_stroke"].notna()) & (filtered_df["total_distance"] > 0)]
     
@@ -724,12 +846,29 @@ def update_swim_pie(selected_date):
         return fig
     
     stroke_summary = filtered_df.groupby("swim_stroke")["total_distance"].sum().reset_index()
+
+    stroke_summary["swim_stroke"] = stroke_summary["swim_stroke"].str.title()
+
     fig = px.pie(stroke_summary, names="swim_stroke", values="total_distance", title=title)
     
+    fig.update_traces(
+        hoverinfo="skip",
+        hovertemplate=None
+    )
+
+
     fig.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#e0e1e5')
+        font=dict(color='#e0e1e5'),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.3,
+            xanchor="center",
+            x=0.5
+        ),
+        margin=dict(b=80) 
     )
 
     return fig
@@ -764,6 +903,225 @@ def update_yearly_totals(selected_year):
         f"{avg_duration_min:,.0f} min",
         f"{avg_distance_yards:,.0f} yards"
     )
+
+
+@callback(
+    Output("download_excel", "data"),
+    Input("export_excel_btn", "n_clicks"),
+    prevent_initial_call=True
+)
+def export_to_excel(n_clicks):
+    if n_clicks is None:
+        return dash.no_update
+    
+    
+    output = io.BytesIO()
+    
+    # Create Excel writer object
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+     
+        data.to_excel(writer, sheet_name='Daily Swim Summary', index=False)
+        
+       
+        agg_data.to_excel(writer, sheet_name='Aggregated Swim Data', index=False)
+    
+    
+    output.seek(0)
+    file_content = output.read()
+    
+   
+    filename = f"swim_data_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    
+    return dcc.send_bytes(file_content, filename)
+
+
+clientside_callback(
+    """
+    function(n_clicks) {
+        if (!n_clicks) {
+            return {};
+        }
+
+
+        const overviewLink = document.getElementById("nav-overview");
+        if (overviewLink) {
+            overviewLink.click();
+        }
+
+
+        setTimeout(function() {
+            window.print();
+        }, 600);   // adjust if needed
+
+        return {};
+    }
+    """,
+    Output("print_trigger", "data"),
+    Input("print_dashboard_btn", "n_clicks"),
+    prevent_initial_call=True
+)
+
+
+# Social sharing callbacks
+clientside_callback(
+    """
+    function(n_clicks) {
+        if (!n_clicks) {
+            return null;
+        }
+        
+        const url = encodeURIComponent(window.location.href);
+        const text = encodeURIComponent("Check out my swim tracking dashboard!");
+        const twitterUrl = "https://twitter.com/intent/tweet?url=" + url + "&text=" + text;
+        window.open(twitterUrl, "_blank", "width=550,height=420");
+        
+        return null;
+    }
+    """,
+    Output("share_twitter_store", "data"),
+    Input("share_twitter_btn", "n_clicks"),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(n_clicks) {
+        if (!n_clicks) {
+            return null;
+        }
+        
+        const url = encodeURIComponent(window.location.href);
+        const facebookUrl = "https://www.facebook.com/sharer/sharer.php?u=" + url;
+        window.open(facebookUrl, "_blank", "width=550,height=420");
+        
+        return null;
+    }
+    """,
+    Output("share_facebook_store", "data"),
+    Input("share_facebook_btn", "n_clicks"),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(n_clicks) {
+        if (!n_clicks) {
+            return null;
+        }
+        
+
+        const url = window.location.href;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function() {
+                alert("Link copied! Paste it in your Instagram post or story.");
+            }).catch(function(err) {
+                console.error("Failed to copy: ", err);
+            });
+        } else {
+
+            const textArea = document.createElement("textarea");
+            textArea.value = url;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand("copy");
+                alert("Link copied! Paste it in your Instagram post or story.");
+            } catch (err) {
+                console.error("Fallback copy failed: ", err);
+            }
+            document.body.removeChild(textArea);
+        }
+        
+        return null;
+    }
+    """,
+    Output("share_instagram_store", "data"),
+    Input("share_instagram_btn", "n_clicks"),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(n_clicks) {
+        if (!n_clicks) {
+            return null;
+        }
+        
+        const url = window.location.href;
+        const subject = encodeURIComponent("My Swim Tracking Dashboard");
+        const body = encodeURIComponent("Check out my swim tracking dashboard: " + url);
+        const mailtoUrl = "mailto:?subject=" + subject + "&body=" + body;
+        window.location.href = mailtoUrl;
+        
+        return null;
+    }
+    """,
+    Output("share_email_store", "data"),
+    Input("share_email_btn", "n_clicks"),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(n_clicks) {
+        if (!n_clicks) {
+            return {"display": "none"};
+        }
+        
+        const url = window.location.href;
+        
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function() {
+                // Show feedback
+                const feedback = document.getElementById("copy_link_feedback");
+                if (feedback) {
+                    feedback.textContent = "✓ Link copied to clipboard!";
+                    feedback.style.display = "block";
+                    setTimeout(function() {
+                        feedback.style.display = "none";
+                    }, 3000);
+                }
+            }).catch(function(err) {
+                console.error("Failed to copy: ", err);
+            });
+        } else {
+
+            const textArea = document.createElement("textarea");
+            textArea.value = url;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand("copy");
+                const feedback = document.getElementById("copy_link_feedback");
+                if (feedback) {
+                    feedback.textContent = "✓ Link copied to clipboard!";
+                    feedback.style.display = "block";
+                    setTimeout(function() {
+                        feedback.style.display = "none";
+                    }, 3000);
+                }
+            } catch (err) {
+                console.error("Fallback copy failed: ", err);
+            }
+            document.body.removeChild(textArea);
+        }
+        
+        return {"display": "none"};
+    }
+    """,
+    Output("copy_link_feedback", "style"),
+    Input("copy_link_btn", "n_clicks"),
+    prevent_initial_call=True
+)
 
 
 # Run the App
