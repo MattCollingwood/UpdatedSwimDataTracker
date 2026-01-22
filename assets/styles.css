@@ -1,0 +1,78 @@
+html, body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #15113a;
+  background-size: cover;
+  -webkit-backdrop-filter: brightness(0.5);
+          backdrop-filter: brightness(0.5);
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.container-fluid {
+  background-color: #282a54;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+}
+
+h4, h5, h6 {
+  color: #e0e1e5 !important;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+h1 {
+  font-size: 3.5rem;
+  font-weight: bold;
+  color: #e0e1e5 !important;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+h3 {
+  font-size: 2rem;
+  color: #e0e1e5 !important;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+
+
+h4 {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #e0e1e5 !important;
+}
+
+.card {
+  background-color: #282a54;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2px;
+}
+.card .card-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #bdc3c7;
+  margin-bottom: 1px;
+}
+.card .card-body {
+  padding: 2px;
+}
+
+#nav-settings .nav-link.active {
+  background-color: #3a3f6b;
+  color: #ffffff !important;
+}
+
+.Select-control {
+  background-color: #282a54;
+  border: none;
+  color: #e0e1e5;
+}
+
+.Select-input {
+  color: #e0e1e5;
+}
+
+.has-value.Select--single> .Select-control .Select-value .Select-value-label {
+  color: #e0e1e5;
+}
